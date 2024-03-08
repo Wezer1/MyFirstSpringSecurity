@@ -1,5 +1,6 @@
 package net.proselyte.springsecuritydemo.config;
 
+import net.proselyte.springsecuritydemo.model.Permission;
 import net.proselyte.springsecuritydemo.model.Role;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,16 +42,17 @@ public class SecurityConfig {
 
                 .requestMatchers("/").permitAll()//позволяет получить пользователю
                 // доступ к любому URL начинаещегося с /
-                .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole(Role.ADMIN.name(), Role.USER.name())
-                //дает доступ любому пользователю с ролями ADMIN и USER
+                .requestMatchers(HttpMethod.GET, "/api/**").hasAuthority(Permission.DEVELOPERS_READ.getPermission())
+                //дает доступ любому пользователю с разрешением на чтение
 
-                .requestMatchers(HttpMethod.POST, "/api/**").hasRole(Role.ADMIN.name())//доступ только ADMIN
-                .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole(Role.ADMIN.name())//доступ только ADMIN
+                .requestMatchers(HttpMethod.POST, "/api/**").hasAuthority(Permission.DEVELOPERS_WRITE.getPermission())
+                .requestMatchers(HttpMethod.DELETE, "/api/**").hasAuthority(Permission.DEVELOPERS_WRITE.getPermission())
+                //дает доступ любому пользователю с разрешением на внесение изменений
 
                 .anyRequest()//работает для любого запроса не прошедшего проверку
                 .authenticated()//говорит о необходимости аунтификации пользователя, прошедшего проверку
                 .and()
-                .httpBasic();
+                .httpBasic();//настройка базовой аунтификации приложения
         return http.build();
     }
 
@@ -60,12 +62,12 @@ public class SecurityConfig {
                 User.builder()//начинаем создавать пользователя с помощью метода builder()
                         .username("admin")//присваиваем логин
                         .password(passwordEncoder().encode("admin"))//присваиваем пароль через кодировку
-                        .roles(Role.ADMIN.name())//присваиваем роль
+                        .authorities(Role.ADMIN.getAuthorities())//присваиваем роль через authorities
                         .build(),//создаем user на основе выданных данных
                 User.builder()
                         .username("user")
                         .password(passwordEncoder().encode("user"))
-                        .roles(Role.USER.name())
+                        .authorities(Role.USER.getAuthorities())
                         .build()
         );
     }
