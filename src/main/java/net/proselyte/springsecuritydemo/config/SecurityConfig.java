@@ -1,7 +1,9 @@
 package net.proselyte.springsecuritydemo.config;
 
+import net.proselyte.springsecuritydemo.model.Role;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -17,15 +19,38 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity//помечаем класс источником настройки правил безопасности приложения
 public class SecurityConfig {
 
+//    @Bean
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//                .authorizeRequests(authorize ->
+//                        authorize
+//                                .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole(Role.ADMIN.name(), Role.USER.name())
+//                                .requestMatchers(HttpMethod.POST, "/api/**").hasRole(Role.ADMIN.name())
+//                                .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole(Role.ADMIN.name())
+//                                .anyRequest().authenticated()
+//                );
+//        return http.build();
+//    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeRequests//позволяет задать правила, кто и как может обращаться к URL в прложении
-                (authorize -> authorize
-                        .requestMatchers("/**").permitAll()//позволяет получить доступ к любому URL начинаещегося с /
-                        .anyRequest()//работает для любого запроса не прошедшего проверку
-                        .authenticated()//говорит о необходимости аунтификации пользователя, прошедшего проверку
-                );
+                .csrf().disable()//отключаем csrf
+                .authorizeHttpRequests()
+                //позволяет задать правила, кто и как может обращаться к URL в прложении
+
+                .requestMatchers("/").permitAll()//позволяет получить пользователю
+                // доступ к любому URL начинаещегося с /
+                .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole(Role.ADMIN.name(), Role.USER.name())
+                //дает доступ любому пользователю с ролями ADMIN и USER
+
+                .requestMatchers(HttpMethod.POST, "/api/**").hasRole(Role.ADMIN.name())//доступ только ADMIN
+                .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole(Role.ADMIN.name())//доступ только ADMIN
+
+                .anyRequest()//работает для любого запроса не прошедшего проверку
+                .authenticated()//говорит о необходимости аунтификации пользователя, прошедшего проверку
+                .and()
+                .httpBasic();
         return http.build();
     }
 
@@ -35,13 +60,18 @@ public class SecurityConfig {
                 User.builder()//начинаем создавать пользователя с помощью метода builder()
                         .username("admin")//присваиваем логин
                         .password(passwordEncoder().encode("admin"))//присваиваем пароль через кодировку
-                        .roles("ADMIN")//присваиваем роль
-                        .build()//создаем user на основе выданных данных
+                        .roles(Role.ADMIN.name())//присваиваем роль
+                        .build(),//создаем user на основе выданных данных
+                User.builder()
+                        .username("user")
+                        .password(passwordEncoder().encode("user"))
+                        .roles(Role.USER.name())
+                        .build()
         );
     }
 
     @Bean
-    protected PasswordEncoder passwordEncoder(){
+    protected PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);//Возвращаем BCrypt кодировку 12 силы
     }
 }
