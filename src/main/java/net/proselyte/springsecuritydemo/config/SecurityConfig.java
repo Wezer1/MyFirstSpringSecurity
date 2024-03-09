@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration//помечаем класс, который предоставляет конфигурацию бинов, которые должны быть добавлены
 //в контейнер при запуске приложения
@@ -42,7 +44,19 @@ public class SecurityConfig {
                 .anyRequest()//работает для любого запроса не прошедшего проверку
                 .authenticated()//говорит о необходимости аунтификации пользователя
                 .and()
-                .httpBasic();//настройка базовой аунтификации приложения
+                .formLogin()//говорим что аунтификация происхдит через Login
+                .loginPage("/auth/login").permitAll()//говорим что loginPage находится по ссылке .. и к ней имеют доступ все
+                .defaultSuccessUrl("/auth/success")//если пользователь прошел проверку, перенаправляем его на страницу success
+                .and()
+                .logout()//говорим, что хотим настоить logout
+                .logoutRequestMatcher(new AntPathRequestMatcher("/auth/logout","POST"))
+        //а именно logoutRM должен быть обработан AntPathRequestMatcher,
+        // должен происходить по ссылке /auth/logout и только методом POST
+                .invalidateHttpSession(true)//после успешной аутентификации
+                // Spring Security автоматически недопустимит существующую HTTP-сессию
+                .clearAuthentication(true)//уничтожить всю информацию о мне
+                .deleteCookies("JSESSIONID")//удаляем cookies
+                .logoutSuccessUrl("/auth/login");// перенаправляем на страницу /auth/login
         return http.build();
     }
 
